@@ -1,0 +1,23 @@
+# NOTICE — OpenChamber
+
+Copyright (C) 2026 Bohdan Triapitsyn
+
+---
+
+## Third-Party Dependencies
+
+This product includes software developed by:
+
+- OpenCode SDK (@opencode-ai/sdk) — MIT — OpenCode team
+- Electron — MIT — OpenJS Foundation
+- React — MIT — Meta Platforms
+- Tailwind CSS — MIT — Tailwind Labs
+- Zustand — MIT — Paul Henschel
+- Express — MIT — StrongLoop / IBM
+- Base UI (@base-ui/react) — MIT — MUI
+
+For a complete list of third-party dependencies and their licenses, see the LICENSE file or run the project's license checker tool.
+
+## License
+
+This project is licensed under the terms of the LICENSE file in the root directory.
