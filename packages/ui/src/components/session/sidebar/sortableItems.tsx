@@ -61,6 +61,7 @@ export const SortableProjectItem: React.FC<SortableProjectItemProps> = ({
   isCollapsed,
   isActiveProject,
   isRepo,
+  diligenciaVersion,
   isDesktopShell,
   isStuck,
   hideDirectoryControls,
