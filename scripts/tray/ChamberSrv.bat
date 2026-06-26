@@ -1,4 +1,4 @@
 @echo off
 cd /d "%~dp0..\.."
-start "" powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\tray\ChamberSrv.ps1"
-exit
+powershell -NoProfile -ExecutionPolicy Bypass -NoExit -File "scripts\tray\ChamberSrv.ps1"
+pause
