@@ -185,6 +185,24 @@ $watchdogTimer.Add_Tick({
 })
 $watchdogTimer.Start()
 
+# ── Form invisible (mantiene vivo el message pump) ───────────
+$trayForm = New-Object System.Windows.Forms.Form
+$trayForm.WindowState = "Minimized"
+$trayForm.ShowInTaskbar = $false
+$trayForm.Load.Add({ $trayForm.Hide() })
+
+# Actualizar el handler del item "Cerrar" para cerrar el form
+$exitItem.Add_Click({
+    $global:watchdogEnabled = $false
+    Stop-Chamber
+    $notifyIcon.Visible = $false
+    $watchdogTimer.Stop()
+    $trayForm.Close()
+    [System.Windows.Forms.Application]::Exit()
+})
+
 # ── Startup ─────────────────────────────────────────────────
+$trayForm.Show()
+$watchdogTimer.Start()
 Start-Chamber
-[System.Windows.Forms.Application]::Run()
+[System.Windows.Forms.Application]::Run($trayForm)
