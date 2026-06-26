@@ -1,4 +1,4 @@
-# ChamberSrv.ps1 — Tray app para OpenChamber
+﻿# ChamberSrv.ps1 - Tray app para OpenChamber
 # Gestiona start/stop/restart de Chamber desde la bandeja del sistema.
 # Lanzar via: powershell -WindowStyle Hidden -File ChamberSrv.ps1
 
@@ -35,7 +35,7 @@ function Get-TrayIcon {
 
 # ── Process Management ──────────────────────────────────────
 function Stop-Chamber {
-    $tooltip = "Chamber — Deteniendo..."
+    $tooltip = "Chamber - Deteniendo..."
     $global:watchdogEnabled = $false
 
     # Kill by process name
@@ -57,11 +57,11 @@ function Stop-Chamber {
         }
     }
     $global:chamberProcess = $null
-    $notifyIcon.Text = "Chamber — Detenido"
+    $notifyIcon.Text = "Chamber - Detenido"
 }
 
 function Start-Chamber {
-    $notifyIcon.Text = "Chamber — Iniciando..."
+    $notifyIcon.Text = "Chamber - Iniciando..."
 
     # Kill orphaned processes first
     Stop-Chamber
@@ -99,14 +99,14 @@ function Start-Chamber {
         Start-Sleep -Seconds 5
 
         if ($proc.HasExited) {
-            $notifyIcon.Text = "Chamber — Error al iniciar"
+            $notifyIcon.Text = "Chamber - Error al iniciar"
             $notifyIcon.ShowBalloonTip(5000, "Chamber", "Error al iniciar. Revisar logs.", "Error")
         } else {
-            $notifyIcon.Text = "Chamber — $URL — Running"
+            $notifyIcon.Text = "Chamber - $URL - Running"
             $notifyIcon.ShowBalloonTip(3000, "Chamber", "✅ Iniciado en $URL", "Info")
         }
     } catch {
-        $notifyIcon.Text = "Chamber — Error"
+        $notifyIcon.Text = "Chamber - Error"
         $notifyIcon.ShowBalloonTip(5000, "Chamber", "Error: $_", "Error")
     }
 }
@@ -121,7 +121,7 @@ function Restart-Chamber {
 # ── Tray Icon ───────────────────────────────────────────────
 $notifyIcon = New-Object System.Windows.Forms.NotifyIcon
 $notifyIcon.Icon = Get-TrayIcon
-$notifyIcon.Text = "Chamber — Iniciando..."
+$notifyIcon.Text = "Chamber - Iniciando..."
 $notifyIcon.Visible = $true
 
 $contextMenu = New-Object System.Windows.Forms.ContextMenuStrip
