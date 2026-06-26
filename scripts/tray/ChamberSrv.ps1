@@ -189,7 +189,7 @@ $watchdogTimer.Start()
 $trayForm = New-Object System.Windows.Forms.Form
 $trayForm.WindowState = "Minimized"
 $trayForm.ShowInTaskbar = $false
-$trayForm.Load.Add({ $trayForm.Hide() })
+$trayForm.add_Load({ $trayForm.Hide() })
 
 # Actualizar el handler del item "Cerrar" para cerrar el form
 $exitItem.Add_Click({
