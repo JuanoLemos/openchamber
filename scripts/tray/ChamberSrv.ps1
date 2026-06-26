@@ -9,6 +9,7 @@ Add-Type -AssemblyName System.Drawing
 $ROOT = "C:\Users\jlemo\OneDrive\Desktop\openchamber"
 $PORT = 3000
 $URL  = "http://localhost:$PORT"
+$LOGFILE = "$ROOT\scripts\tray\ChamberSrv.log"
 
 Set-Location $ROOT
 $global:chamberProcess = $null
@@ -83,6 +84,16 @@ function Start-Chamber {
         $proc.Start() | Out-Null
         $proc.BeginOutputReadLine()
         $proc.BeginErrorReadLine()
+
+        $logDir = Split-Path $LOGFILE -Parent
+        if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
+        "" | Set-Content $LOGFILE
+        $proc.add_OutputDataReceived({
+            if ($_.Data) { Add-Content $LOGFILE -Value "[$(Get-Date -Format 'HH:mm:ss')] $($_.Data)" }
+        })
+        $proc.add_ErrorDataReceived({
+            if ($_.Data) { Add-Content $LOGFILE -Value "[$(Get-Date -Format 'HH:mm:ss') ERR] $($_.Data)" }
+        })
 
         $global:chamberProcess = $proc
         Start-Sleep -Seconds 5
