@@ -38,15 +38,13 @@ function Stop-Chamber {
     $tooltip = "Chamber - Deteniendo..."
     $global:watchdogEnabled = $false
 
-    # Kill by process name
-    @("bun", "electron", "opencode") | ForEach-Object {
-        Get-Process -Name $_ -ErrorAction SilentlyContinue | ForEach-Object {
-            Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-        }
-    }
+    # Only kill processes related to THIS Chamber directory
+    Get-CimInstance Win32_Process -Filter "Name='bun.exe' OR Name='electron.exe' OR Name='opencode.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -match [regex]::Escape($ROOT) -or $_.ExecutablePath -match [regex]::Escape($ROOT) } |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
     Start-Sleep -Seconds 2
 
-    # Clean ports
+    # Clean Chamber ports only if they're in use by this directory
     @($PORT, 3901, 5173) | ForEach-Object {
         $p = $_
         netstat -aon 2>$null | Select-String ":$p " | ForEach-Object {
@@ -60,13 +58,21 @@ function Stop-Chamber {
     $notifyIcon.Text = "Chamber - Detenido"
 }
 
+function Test-ChamberRunning {
+    $listening = netstat -aon 2>$null | Select-String ":$PORT " | Select-String "LISTENING"
+    return ($listening -ne $null)
+}
+
 function Start-Chamber {
+    # If Chamber is already running, just report it
+    if (Test-ChamberRunning) {
+        $notifyIcon.Text = "Chamber - $URL - Running"
+        $notifyIcon.ShowBalloonTip(2000, "Chamber", "Ya esta corriendo en $URL", "Info")
+        $global:watchdogEnabled = $true
+        return
+    }
+
     $notifyIcon.Text = "Chamber - Iniciando..."
-
-    # Kill orphaned processes first
-    Stop-Chamber
-    Start-Sleep -Seconds 2
-
     $global:watchdogEnabled = $true
 
     try {
