@@ -12,7 +12,8 @@ $URL  = "http://localhost:$PORT"
 $LOGFILE = "$ROOT\scripts\tray\ChamberSrv.log"
 
 Set-Location $ROOT
-$global:chamberProcess = $null
+$global:chamberPid = $null
+$global:startedAt = $null
 $global:watchdogEnabled = $true
 
 # ── Icono ───────────────────────────────────────────────────
@@ -54,7 +55,7 @@ function Stop-Chamber {
             try { Stop-Process -Id ([int]$pid) -Force -ErrorAction Stop } catch {}
         }
     }
-    $global:chamberProcess = $null
+    $global:chamberPid = $null
     $notifyIcon.Text = "Chamber - Detenido"
 }
 
@@ -64,9 +65,9 @@ function Test-ChamberRunning {
 }
 
 function Start-Chamber {
-    # If Chamber is already running, just report it
     if (Test-ChamberRunning) {
-        $notifyIcon.Text = "Chamber - $URL - Running"
+        $notifyIcon.Text = "Chamber - $URL"
+        if (-not $global:startedAt) { $global:startedAt = Get-Date }
         $notifyIcon.ShowBalloonTip(2000, "Chamber", "Ya esta corriendo en $URL", "Info")
         $global:watchdogEnabled = $true
         return
@@ -82,34 +83,19 @@ function Start-Chamber {
         $procInfo.WorkingDirectory = $ROOT
         $procInfo.UseShellExecute = $false
         $procInfo.CreateNoWindow = $true
-        $procInfo.RedirectStandardOutput = $true
-        $procInfo.RedirectStandardError = $true
 
         $proc = New-Object System.Diagnostics.Process
         $proc.StartInfo = $procInfo
         $proc.Start() | Out-Null
-        $proc.BeginOutputReadLine()
-        $proc.BeginErrorReadLine()
+        $global:chamberPid = $proc.Id
+        Start-Sleep -Seconds 8
 
-        $logDir = Split-Path $LOGFILE -Parent
-        if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
-        "" | Set-Content $LOGFILE
-        $proc.add_OutputDataReceived({
-            if ($_.Data) { Add-Content $LOGFILE -Value "[$(Get-Date -Format 'HH:mm:ss')] $($_.Data)" }
-        })
-        $proc.add_ErrorDataReceived({
-            if ($_.Data) { Add-Content $LOGFILE -Value "[$(Get-Date -Format 'HH:mm:ss') ERR] $($_.Data)" }
-        })
-
-        $global:chamberProcess = $proc
-        Start-Sleep -Seconds 5
-
-        if ($proc.HasExited) {
-            $notifyIcon.Text = "Chamber - Error al iniciar"
-            $notifyIcon.ShowBalloonTip(5000, "Chamber", "Error al iniciar. Revisar logs.", "Error")
+        if (Test-ChamberRunning) {
+            $global:startedAt = Get-Date
+            $notifyIcon.Text = "Chamber - $URL"
+            $notifyIcon.ShowBalloonTip(3000, "Chamber", "Iniciado en $URL", "Info")
         } else {
-            $notifyIcon.Text = "Chamber - $URL - Running"
-            $notifyIcon.ShowBalloonTip(3000, "Chamber", "✅ Iniciado en $URL", "Info")
+            $notifyIcon.Text = "Chamber - Iniciando (puede tardar)..."
         }
     } catch {
         $notifyIcon.Text = "Chamber - Error"
@@ -167,11 +153,68 @@ $notifyIcon.ContextMenuStrip = $contextMenu
 $watchdogTimer = New-Object System.Windows.Forms.Timer
 $watchdogTimer.Interval = 5000
 $deadSince = $null
+$tickCount = 0
+$healthOk = $true
 $watchdogTimer.Add_Tick({
     if (-not $global:watchdogEnabled) { return }
-    if ($global:chamberProcess -eq $null) { return }
+    $tickCount++
 
-    if ($global:chamberProcess.HasExited) {
+    # Live tooltip data
+    if ($global:chamberPid -ne $null) {
+        $running = Test-ChamberRunning
+        $memStr = ""
+        $uptimeStr = ""
+
+        try {
+            $ps = Get-Process -Id $global:chamberPid -ErrorAction Stop
+            $memMb = [math]::Round($ps.WorkingSet64 / 1MB, 0)
+            $memStr = "$memMb MB"
+        } catch {}
+
+        if ($global:startedAt) {
+            $uptime = (Get-Date) - $global:startedAt
+            if ($uptime.TotalMinutes -lt 1) {
+                $uptimeStr = "$([math]::Round($uptime.TotalSeconds, 0))s"
+            } elseif ($uptime.TotalHours -lt 1) {
+                $uptimeStr = "$($uptime.Minutes)m"
+            } else {
+                $uptimeStr = "$($uptime.Hours)h $($uptime.Minutes)m"
+            }
+        }
+
+        if ($running) {
+            $tooltip = "Chamber :$PORT"
+            if ($memStr) { $tooltip += " | $memStr" }
+            if ($uptimeStr) { $tooltip += " | $uptimeStr" }
+            $notifyIcon.Text = $tooltip
+        } else {
+            $notifyIcon.Text = "Chamber - Sin respuesta :$PORT"
+        }
+    }
+
+    # Watchdog: auto-relanzar si muere
+
+    # Health check cada 60s (cada 12 ticks)
+    if ($tickCount % 12 -eq 0 -and $global:chamberPid -ne $null -and (Test-ChamberRunning)) {
+        try {
+            $health = Invoke-RestMethod -Uri "http://localhost:$PORT/health" -TimeoutSec 5 -ErrorAction Stop
+            if (-not $healthOk) {
+                $healthOk = $true
+                $notifyIcon.ShowBalloonTip(3000, "Chamber", "Salud recuperada", "Info")
+            }
+        } catch {
+            if ($healthOk) {
+                $healthOk = $false
+                $notifyIcon.ShowBalloonTip(5000, "Chamber", "Sin respuesta en :$PORT", "Warning")
+            }
+        }
+    }
+
+    # Watchdog: auto-relanzar si muere
+    if ($global:chamberPid -eq $null) { return }
+
+    $alive = try { Get-Process -Id $global:chamberPid -ErrorAction Stop | Out-Null; $true } catch { $false }
+    if (-not $alive) {
         if ($deadSince -eq $null) {
             $deadSince = Get-Date
         } elseif (((Get-Date) - $deadSince).TotalSeconds -gt 30) {
@@ -189,7 +232,7 @@ $watchdogTimer.Start()
 $trayForm = New-Object System.Windows.Forms.Form
 $trayForm.WindowState = "Minimized"
 $trayForm.ShowInTaskbar = $false
-$trayForm.add_Load({ $trayForm.Hide() })
+# El form ya está Minimized + ShowInTaskbar=$false. No necesita Hide().
 
 # Actualizar el handler del item "Cerrar" para cerrar el form
 $exitItem.Add_Click({

@@ -1051,7 +1051,7 @@ export const DirectoryTree: React.FC<DirectoryTreeProps> = ({
         <button
           onClick={(e) => {
             e.stopPropagation();
-            startCreatingFile(item);
+            togglePin(item.path);
           }}
           className={cn(
             "hover:bg-interactive-hover rounded transition-opacity",

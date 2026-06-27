@@ -8,6 +8,17 @@
 |----|------|-----------|--------|------------|
 | R01 | Linux desktop app | P1 | 🔴 Pendiente | — |
 | R02 | Mobile app con remote instance y laptop connectivity | P2 | 🔴 Pendiente | — |
+| R08 | Tray: tooltip con datos vivos (memoria, uptime, puerto) | P1 | ✅ Completado | R00 |
+| R09 | Tray: "Buscar actualizaciones" → git pull upstream + bun install | P2 | 🔴 Pendiente | R00 |
+| R10 | Tray: health balloon via /health cada 60s | P2 | ✅ Completado | R00 |
+| R11 | Tray: submenú "Datos" con Memoria, Puerto, Versión, Uptime | P3 | 🔴 Pendiente | R08 |
+| R12 | Tray: auto-update de Chamber (git fetch upstream + tag compare) | P3 | 🔴 Pendiente | R09 |
+
+## Completado — Diligencia Tray
+
+| ID | Item | Instancia |
+|----|------|-----------|
+| R00 | Tray app funcional (icono, menú, start/stop/restart, watchdog) | 2026-06-26 |
 
 ## Siguiente (Next)
 
