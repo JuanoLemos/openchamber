@@ -64,6 +64,20 @@ LISTAR archivos críticos que serían respaldados:
 CALCULAR: "Se creará backup #<N+1> en `.old/doctor-backups/`. Pruning: se conservan últimos $BACKUP_KEEP backups."
 INCLUIR en tabla consolidada de Fase 2.
 
+### 1g — Circuito lógico
+CARGAR `skill("diligencia-circuito")`
+EJECUTAR los 8 checks de integridad lógica y UX sobre el proyecto:
+- Handlers vacíos (onClick sin función, stubs)
+- Callejones sin salida (modales sin cerrar, loading→null)
+- Rutas huérfanas (endpoints sin consumidor frontend)
+- Fetch sin endpoint (llamadas frontend sin ruta backend)
+- Estados no manejados (loading/error/empty sin UI)
+- Navegación rota (links a rutas inexistentes)
+- Consistencia UX (misma acción, distinto comportamiento)
+- Feedback faltante (POST/DELETE sin toast/confirm)
+ENTREGAR tabla de hallazgos con Archivo:Línea | Hallazgo | Severidad (P2/P3)
+INCLUIR en tabla consolidada de Fase 2.
+
 ---
 
 ## Fase 2 — Confirmación
@@ -71,10 +85,11 @@ INCLUIR en tabla consolidada de Fase 2.
 ENTREGAR tabla consolidada:
 
 | Categoría | Hallazgos | Impacto | Acción propuesta |
-|---|---|---|---|
+|---|---|---|---|---|
 | Estructura | N ❌ estructura, N ❌ variables | Alto si estructura rota | Crear directorios/archivos, corregir variables |
 | Código | N ❌ sintaxis/paréntesis/rutas | Medio a alto | Registrar bugs en $BUGS |
 | Tracking | N gaps RM↔CHECKLIST, ADRs, guías | Bajo a medio | Sincronizar RM/CHECKLIST/AGENTS.md |
+| Circuito | N ❌ handlers/rutas/UX | Medio | Registrar bugs P2/P3 en $BUGS |
 | Limpieza | N temporales | Bajo | /limpiar: eliminar temporales |
 | Deprecación | N obsoletos | Bajo | /deprecar: mover a .old/ |
 
@@ -150,6 +165,12 @@ Para cada candidato obsoleto:
 - AUTOCIERRE: Si `/doctor` está como `🔴 Pendiente` en RM "Next" → actualizar a `✅ Hecho`. Si está `[ ]` en CHECKLIST → marcar `[x]`.
 - Workflow terminado. Si hay cambios documentales en disco: ejecutar `/CBP updoc` para sync, o `/CBP version` para versionar. Si no hubo correcciones: volver a SESSIONWORK.
 
+### 3g — Circuito
+Por cada hallazgo de 1g con archivo:línea concreto:
+- REGISTRAR bug en `$BUGS` con formato: `B-NN | <fecha> | P2/P3 | Circuito | <archivo>:<línea> — <hallazgo> | Abierto`
+- AGREGAR entrada en `$CHECKLIST` como `[ ] <archivo>:<línea> — <hallazgo> (P2/P3 circuito)`
+Hallazgos sin archivo:línea concreto: SALTAR (no son bugs confirmados).
+
 ---
 
 ## Formato de salida
@@ -166,7 +187,7 @@ Para cada candidato obsoleto:
 ---
 
 ## Validación
-- Las 6 sub-verificaciones (1a-1f) están presentes en el diagnóstico
+- Las 7 sub-verificaciones (1a-1g) están presentes en el diagnóstico
 - /health no aborta /doctor si stack ≠ JS (reporta ⚠️ y continúa)
 - No se modifican archivos sin confirmación en Fase 2
 - El backup se ejecuta después de la confirmación y antes de cualquier corrección
@@ -174,6 +195,7 @@ Para cada candidato obsoleto:
 - Cada ❌ en Fase 1 tiene contraparte en Fase 3
 - Si Fase 2 responde "no": no se ejecuta backup ni Fase 3
 - Autocierre aplicado: /doctor marcado como ✅/[x] en RM/CHECKLIST si estaba pendiente
+- Circuito (1g/3g): hallazgos sin archivo:línea no se registran como bugs
 
 
 ## Archivos que lee
@@ -182,13 +204,14 @@ Para cada candidato obsoleto:
 - `doc/arch/*.md` (incluye $BACKUPS), `doc/guias/*.md`, `doc/mecanicas/*.md`
 - `.opencode/commands/*.md`
 - Archivos JS/TS del proyecto (solo si stack == JS)
+- Archivos frontend/backend para escaneo de circuito (1g)
 
 ## Archivos que modifica (solo si usuario confirma)
 - `$BACKUPS` (nueva entrada de backup)
 - `.old/doctor-backups/` (directorio de backups + pruning)
-- `$BUGS` (nuevos bugs)
+- `$BUGS` (nuevos bugs, incluyendo hallazgos de circuito 3g)
 - `$INCIDENTS` (nuevos incidentes, si aplica)
-- `$CHECKLIST` (nuevos items tildados)
+- `$CHECKLIST` (nuevos items tildados, pendientes de circuito)
 - `$RM` (mover items de Ahora a Completado)
 - `AGENTS.md` (nuevos registros de ADRs/guías, tabla Deprecados)
 - `CHANGELOG.md` (entrada de correcciones)
@@ -206,3 +229,4 @@ Para cada candidato obsoleto:
 - NO hacer backup si Fase 2 responde "no" (sin correcciones → sin backup)
 - NO eliminar backups manuales o no generados por /doctor durante el pruning
 - NO sobrescribir backups existentes — siempre crear nuevo directorio con número incremental
+- NO registrar hallazgos de circuito (3g) sin archivo:línea concreto — solo bugs confirmados
