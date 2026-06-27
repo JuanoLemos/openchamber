@@ -23,7 +23,7 @@ Español — todas las respuestas del agente deben ser en español. Si el agente
 | `$INCIDENTS` | `doc/arch/incidentes.md` | Incidentes runtime y crashes |
 | `$MAIN_APP` | `packages/electron/main.mjs` | Archivo principal de la aplicación (Electron) |
 | `$CRITICAL_FILES` | `packages/electron/main.mjs`, `packages/web/server/index.js` | Archivos para backup crítico |
-| `$PROYECTOS` | `C:\xampp\htdocs\Diligencia`,`C:\xampp\htdocs\MarketAI`,`C:\xampp\htdocs\buenobonitobarato`,`C:\xampp\htdocs\nemesis`,`C:\xampp\htdocs\+RM`,`C:\xampp\htdocs\conquisitare` | Proyectos adaptados a Diligencia monitoreados desde Chamber |
+| `$PROYECTOS` | `C:\xampp\htdocs\Diligencia`,`C:\xampp\htdocs\MarketAI`,`C:\xampp\htdocs\buenobonitobarato`,`C:\xampp\htdocs\nemesis`,`C:\xampp\htdocs\+RM`,`C:\xampp\htdocs\conquisitare`,`C:\Users\jlemo\OneDrive\Desktop\OpenMontage-main` | Proyectos adaptados a Diligencia monitoreados desde Chamber |
 | `$PROPAGAR_LOG` | `doc/arch/propagaciones.md` | Log de propagaciones de Diligencia |
 | `$UX_CHECK` | `doc/arch/ux-check.md` | Checklist de validación post-implementación |
 

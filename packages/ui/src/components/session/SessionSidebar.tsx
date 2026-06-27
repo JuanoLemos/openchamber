@@ -40,6 +40,7 @@ import { SidebarHeader } from './sidebar/SidebarHeader';
 import { SidebarActivitySections } from './sidebar/SidebarActivitySections';
 import { SidebarFooter } from './sidebar/SidebarFooter';
 import { SidebarProjectsList } from './sidebar/SidebarProjectsList';
+import { DiligenciaCommandBar } from './sidebar/DiligenciaCommandBar';
 import { SessionNodeItem } from './sidebar/SessionNodeItem';
 import type { SessionNodeRenderExtras } from './sidebar/sessionNodeItemUtils';
 import { useUpdateStore } from '@/stores/useUpdateStore';
@@ -1562,6 +1563,8 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
         selectionModeEnabled={selectionModeEnabled}
         onToggleSelectionMode={handleToggleSelectionMode}
       />
+
+      <DiligenciaCommandBar />
 
       <SidebarProjectsList
         topContent={topContent}
