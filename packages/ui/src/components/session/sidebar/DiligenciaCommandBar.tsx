@@ -19,18 +19,25 @@ export function DiligenciaCommandBar(): React.ReactNode {
 
   const sendCommand = React.useCallback(
     (command: string, args?: string) => {
-      if (!currentSessionId) return;
+      if (!currentSessionId) {
+        toast.warning('Sin sesión activa', { description: 'Iniciá una sesión de OpenCode primero' });
+        return;
+      }
       const selection = useSelectionStore.getState().getSessionModelSelection(currentSessionId);
       if (!selection) {
         toast.warning('Comando no enviado', { description: 'Seleccioná un proveedor y modelo en el chat primero' });
         return;
       }
-      void opencodeClient.sendCommand({
+      opencodeClient.sendCommand({
         id: currentSessionId,
         providerID: selection.providerId,
         modelID: selection.modelId,
         command,
         arguments: args ?? '',
+      }).then(() => {
+        toast.success('Comando enviado', { description: `${command} ejecutándose` });
+      }).catch(() => {
+        toast.error('Error', { description: `No se pudo enviar ${command}` });
       });
     },
     [currentSessionId],
