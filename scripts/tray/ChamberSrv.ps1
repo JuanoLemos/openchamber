@@ -16,6 +16,12 @@ $global:chamberPid = $null
 $global:startedAt = $null
 $global:watchdogEnabled = $true
 
+# ── Logging ──────────────────────────────────────────────
+function Log-Event($msg) {
+    $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Add-Content -Path $LOGFILE -Value "$ts $msg"
+}
+
 # ── Icono ───────────────────────────────────────────────────
 function Get-TrayIcon {
     $bmp = New-Object System.Drawing.Bitmap(32, 32)
@@ -38,6 +44,7 @@ function Get-TrayIcon {
 function Stop-Chamber {
     $global:watchdogEnabled = $false
     $notifyIcon.Text = "Chamber - Deteniendo..."
+    Log-Event "STOP iniciado"
 
     Get-Process -Name "bun", "electron" -ErrorAction SilentlyContinue |
         Stop-Process -Force -ErrorAction SilentlyContinue
@@ -53,6 +60,7 @@ function Stop-Chamber {
     }
     $global:chamberPid = $null
     $notifyIcon.Text = "Chamber - Detenido"
+    Log-Event "STOP completado"
 }
 
 function Test-ChamberRunning {
@@ -66,11 +74,13 @@ function Start-Chamber {
         if (-not $global:startedAt) { $global:startedAt = Get-Date }
         $notifyIcon.ShowBalloonTip(2000, "Chamber", "Ya esta corriendo en $URL", "Info")
         $global:watchdogEnabled = $true
+        Log-Event "START saltado — ya corriendo en :$PORT"
         return
     }
 
     $notifyIcon.Text = "Chamber - Iniciando..."
     $global:watchdogEnabled = $true
+    Log-Event "START iniciando bun run electron:dev:bundled"
 
     try {
         $procInfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -90,20 +100,25 @@ function Start-Chamber {
             $global:startedAt = Get-Date
             $notifyIcon.Text = "Chamber - $URL"
             $notifyIcon.ShowBalloonTip(3000, "Chamber", "Iniciado en $URL", "Info")
+            Log-Event "START exitoso — PID $($global:chamberPid) escuchando en :$PORT"
         } else {
             $notifyIcon.Text = "Chamber - Iniciando (puede tardar)..."
+            Log-Event "START en espera — proceso lanzado pero :$PORT aún no responde"
         }
     } catch {
         $notifyIcon.Text = "Chamber - Error"
         $notifyIcon.ShowBalloonTip(5000, "Chamber", "Error: $_", "Error")
+        Log-Event "START ERROR: $_"
     }
 }
 
 function Restart-Chamber {
     $notifyIcon.ShowBalloonTip(2000, "Chamber", "Reiniciando...", "Info")
+    Log-Event "RESTART iniciado"
     Stop-Chamber
     Start-Sleep -Seconds 3
     Start-Chamber
+    Log-Event "RESTART completado"
 }
 
 function Build-UI {
@@ -164,8 +179,10 @@ $openItem = New-Object System.Windows.Forms.ToolStripMenuItem
 $openItem.Text = "Abrir Chamber"
 $openItem.Add_Click({ 
     if (Test-ChamberRunning) {
+        Log-Event "ABRIR — :$PORT ya corriendo, abriendo navegador"
         Start-Process "http://localhost:$PORT"
     } else {
+        Log-Event "ABRIR — :$PORT libre, iniciando Chamber"
         Start-Chamber
     }
 })

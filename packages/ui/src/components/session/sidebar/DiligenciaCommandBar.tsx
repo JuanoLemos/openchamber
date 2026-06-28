@@ -36,8 +36,8 @@ export function DiligenciaCommandBar(): React.ReactNode {
         arguments: args ?? '',
       }).then(() => {
         toast.success('Comando enviado', { description: `${command} ejecutándose` });
-      }).catch(() => {
-        toast.error('Error', { description: `No se pudo enviar ${command}` });
+      }).catch((e) => {
+        toast.error('Error', { description: `${command}: ${e instanceof Error ? e.message : String(e)}` });
       });
     },
     [currentSessionId],
