@@ -36,22 +36,18 @@ function Get-TrayIcon {
 
 # ── Process Management ──────────────────────────────────────
 function Stop-Chamber {
-    $tooltip = "Chamber - Deteniendo..."
     $global:watchdogEnabled = $false
+    $notifyIcon.Text = "Chamber - Deteniendo..."
 
-    # Only kill processes related to THIS Chamber directory
-    Get-CimInstance Win32_Process -Filter "Name='bun.exe' OR Name='electron.exe' OR Name='opencode.exe'" -ErrorAction SilentlyContinue |
-        Where-Object { $_.CommandLine -match [regex]::Escape($ROOT) -or $_.ExecutablePath -match [regex]::Escape($ROOT) } |
-        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-    Start-Sleep -Seconds 2
+    Get-Process -Name "bun", "electron" -ErrorAction SilentlyContinue |
+        Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 3
 
-    # Clean Chamber ports only if they're in use by this directory
     @($PORT, 3901, 5173) | ForEach-Object {
         $p = $_
         netstat -aon 2>$null | Select-String ":$p " | ForEach-Object {
             $line = $_ -replace '\s+', ' '
-            $parts = $line.Split(' ')
-            $pid = $parts[-1]
+            $pid = $line.Split(' ')[-1]
             try { Stop-Process -Id ([int]$pid) -Force -ErrorAction Stop } catch {}
         }
     }
@@ -110,6 +106,52 @@ function Restart-Chamber {
     Start-Chamber
 }
 
+function Build-UI {
+    $notifyIcon.ShowBalloonTip(2000, "Chamber", "🔨 Rebuild UI iniciado...", "Info")
+    try {
+        $procInfo = New-Object System.Diagnostics.ProcessStartInfo
+        $procInfo.FileName = "bun"
+        $procInfo.Arguments = "run build:ui"
+        $procInfo.WorkingDirectory = $ROOT
+        $procInfo.UseShellExecute = $false
+        $procInfo.RedirectStandardOutput = $true
+        $procInfo.RedirectStandardError = $true
+        $proc = New-Object System.Diagnostics.Process
+        $proc.StartInfo = $procInfo
+        $proc.Start() | Out-Null
+        $proc.WaitForExit()
+        $stdout = $proc.StandardOutput.ReadToEnd()
+        $stderr = $proc.StandardError.ReadToEnd()
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        Add-Content -Path $LOGFILE -Value "$timestamp BUILD:UI exit=$($proc.ExitCode)`n$stdout`n$stderr"
+        if ($proc.ExitCode -eq 0) {
+            $notifyIcon.ShowBalloonTip(3000, "Chamber", "✅ UI rebuild completada", "Info")
+        } else {
+            $lastErr = if ($stderr) { ($stderr -split "`n")[-2] } else { "Error desconocido" }
+            $notifyIcon.ShowBalloonTip(5000, "Chamber", "❌ Rebuild error: $lastErr", "Error")
+        }
+    } catch {
+        $notifyIcon.ShowBalloonTip(5000, "Chamber", "❌ Error: $_", "Error")
+    }
+}
+
+function RebuildAndRestart {
+    Build-UI
+    Start-Sleep -Seconds 2
+    Restart-Chamber
+}
+
+function Start-HMR {
+    try {
+        Start-Process -NoNewWindow "powershell" -ArgumentList "-NoProfile -Command `"cd '$ROOT'; bun run dev:web:hmr`"" -WindowStyle Hidden
+        Start-Sleep -Seconds 3
+        Start-Process "http://127.0.0.1:5173"
+        $notifyIcon.ShowBalloonTip(3000, "Chamber", "🌐 HMR iniciado en http://127.0.0.1:5173", "Info")
+    } catch {
+        $notifyIcon.ShowBalloonTip(5000, "Chamber", "Error al iniciar HMR: $_", "Error")
+    }
+}
+
 # ── Tray Icon ───────────────────────────────────────────────
 $notifyIcon = New-Object System.Windows.Forms.NotifyIcon
 $notifyIcon.Icon = Get-TrayIcon
@@ -120,7 +162,13 @@ $contextMenu = New-Object System.Windows.Forms.ContextMenuStrip
 
 $openItem = New-Object System.Windows.Forms.ToolStripMenuItem
 $openItem.Text = "Abrir Chamber"
-$openItem.Add_Click({ Start-Process $URL })
+$openItem.Add_Click({ 
+    if (Test-ChamberRunning) {
+        Start-Process "http://localhost:$PORT"
+    } else {
+        Start-Chamber
+    }
+})
 $contextMenu.Items.Add($openItem)
 
 $contextMenu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
@@ -130,10 +178,27 @@ $restartItem.Text = "Reiniciar"
 $restartItem.Add_Click({ Restart-Chamber })
 $contextMenu.Items.Add($restartItem)
 
+$rebuildRestartItem = New-Object System.Windows.Forms.ToolStripMenuItem
+$rebuildRestartItem.Text = "Reiniciar + Rebuild"
+$rebuildRestartItem.Add_Click({ RebuildAndRestart })
+$contextMenu.Items.Add($rebuildRestartItem)
+
 $stopItem = New-Object System.Windows.Forms.ToolStripMenuItem
 $stopItem.Text = "Detener"
 $stopItem.Add_Click({ Stop-Chamber; $notifyIcon.ShowBalloonTip(2000, "Chamber", "Servidor detenido", "Info") })
 $contextMenu.Items.Add($stopItem)
+
+$contextMenu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
+
+$rebuildItem = New-Object System.Windows.Forms.ToolStripMenuItem
+$rebuildItem.Text = "Rebuild UI"
+$rebuildItem.Add_Click({ Build-UI })
+$contextMenu.Items.Add($rebuildItem)
+
+$hmrItem = New-Object System.Windows.Forms.ToolStripMenuItem
+$hmrItem.Text = "Abrir Dev HMR (5173)"
+$hmrItem.Add_Click({ Start-HMR })
+$contextMenu.Items.Add($hmrItem)
 
 $contextMenu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 

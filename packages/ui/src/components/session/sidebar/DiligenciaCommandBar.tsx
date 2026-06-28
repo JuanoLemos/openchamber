@@ -10,28 +10,31 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { opencodeClient } from '@/lib/opencode/client';
 import { useSessionUIStore } from '@/sync/session-ui-store';
+import { useSelectionStore } from '@/sync/selection-store';
+import { toast } from '@/components/ui';
 import { DILIGENCIA_COMMAND_GROUPS } from '@/lib/diligencia/commands';
 
 export function DiligenciaCommandBar(): React.ReactNode {
   const currentSessionId = useSessionUIStore((state) => state.currentSessionId);
-  const providerID = useSessionUIStore((state) => state.providerID);
-  const modelID = useSessionUIStore((state) => state.modelID);
 
   const sendCommand = React.useCallback(
     (command: string, args?: string) => {
-      if (!currentSessionId || !providerID || !modelID) return;
+      if (!currentSessionId) return;
+      const selection = useSelectionStore.getState().getSessionModelSelection(currentSessionId);
+      if (!selection) {
+        toast.warning('Comando no enviado', { description: 'Seleccioná un proveedor y modelo en el chat primero' });
+        return;
+      }
       void opencodeClient.sendCommand({
         id: currentSessionId,
-        providerID,
-        modelID,
+        providerID: selection.providerId,
+        modelID: selection.modelId,
         command,
         arguments: args ?? '',
       });
     },
-    [currentSessionId, providerID, modelID],
+    [currentSessionId],
   );
-
-  if (!currentSessionId) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-0.5 px-1.5 py-1">
