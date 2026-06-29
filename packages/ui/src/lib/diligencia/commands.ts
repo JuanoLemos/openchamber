@@ -76,4 +76,13 @@ export const DILIGENCIA_COMMAND_GROUPS: DiligenciaCommandGroup[] = [
       { label: '/limpiar', description: 'Eliminar temporales', command: '/limpiar' },
     ],
   },
+  {
+    verb: 'PALOMA',
+    icon: 'dove',
+    emoji: '🕊️',
+    commands: [
+      { label: '/paloma --news', description: 'Palomas pendientes + reglas MAIN', command: '/paloma', arguments: '--news' },
+      { label: '/paloma --new @doc', description: 'Crear paloma-plan (estructura)', command: '/paloma', arguments: '--new @documentador "auditá estructura"' },
+    ],
+  },
 ];

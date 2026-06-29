@@ -217,6 +217,11 @@ $hmrItem.Text = "Abrir Dev HMR (5173)"
 $hmrItem.Add_Click({ Start-HMR })
 $contextMenu.Items.Add($hmrItem)
 
+$palomaItem = New-Object System.Windows.Forms.ToolStripMenuItem
+$palomaItem.Text = "📬 Palomas pendientes"
+$palomaItem.Add_Click({ Start-Process "https://github.com/JuanoLemos/diligencia/blob/master/doc/arch/palomas.md" })
+$contextMenu.Items.Add($palomaItem)
+
 $contextMenu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 
 $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem
