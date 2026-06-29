@@ -41,6 +41,7 @@ import { SidebarActivitySections } from './sidebar/SidebarActivitySections';
 import { SidebarFooter } from './sidebar/SidebarFooter';
 import { SidebarProjectsList } from './sidebar/SidebarProjectsList';
 import { DiligenciaCommandBar } from './sidebar/DiligenciaCommandBar';
+import { PalomaPanel } from './sidebar/PalomaPanel';
 import { SessionNodeItem } from './sidebar/SessionNodeItem';
 import type { SessionNodeRenderExtras } from './sidebar/sessionNodeItemUtils';
 import { useUpdateStore } from '@/stores/useUpdateStore';
@@ -1565,6 +1566,8 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
       />
 
       <DiligenciaCommandBar />
+
+      <PalomaPanel />
 
       <SidebarProjectsList
         topContent={topContent}
