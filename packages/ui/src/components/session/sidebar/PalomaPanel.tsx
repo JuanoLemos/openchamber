@@ -1,22 +1,60 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { opencodeClient } from '@/lib/opencode/client';
+import { runtimeFetch } from '@/lib/runtime-fetch';
 import { useSessionUIStore } from '@/sync/session-ui-store';
 import { useSelectionStore } from '@/sync/selection-store';
 import { toast } from '@/components/ui';
 
+type PalomaEntry = {
+  id: string;
+  agent: string;
+  desc: string;
+  state: string;
+};
+
+function parsePalomasTable(text: string): PalomaEntry[] {
+  return text.split('\n')
+    .filter(line => /^\| P\d+ \|/.test(line))
+    .map(line => {
+      const cols = line.split('|').map(s => s.trim());
+      return {
+        id: cols[1] || 'P???',
+        agent: cols[3] || '—',
+        desc: (cols[4] || '').slice(0, 60),
+        state: cols[7] || '📬 Pendiente',
+      };
+    });
+}
+
 export function PalomaPanel(): React.ReactNode {
   const [expanded, setExpanded] = React.useState(false);
+  const [palomas, setPalomas] = React.useState<PalomaEntry[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const currentSessionId = useSessionUIStore((state) => state.currentSessionId);
 
-  const palomas = [
-    { id: 'P001', agent: '@documentador', desc: '/documentar --legales', state: '✅ Actuado' },
-    { id: 'P002', agent: '@documentador', desc: '/documentar (completo)', state: '🟡 En revisión' },
-    { id: 'P003', agent: '@documentador', desc: 'Manifiesto Diligencia', state: '✅ Actuado' },
-    { id: 'P004', agent: '@documentador', desc: '/documentar --estructura', state: '📬 Pendiente' },
-  ];
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await runtimeFetch(
+          '/api/fs/read?path=doc/arch/palomas.md&optional=true',
+          { cache: 'no-store' }
+        );
+        if (!res.ok) { setLoading(false); return; }
+        const text = await res.text();
+        if (!cancelled) {
+          setPalomas(parsePalomasTable(text));
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
-  const pending = palomas.filter(p => p.state === '📬 Pendiente' || p.state === '🟡 En revisión').length;
+  const pending = palomas.filter(p => p.state.includes('📬') || p.state.includes('🟡')).length;
   const total = palomas.length;
   const progress = total > 0 ? Math.round(((total - pending) / total) * 100) : 0;
 
